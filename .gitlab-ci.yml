@@ -1,0 +1,44 @@
+stages:
+  - test
+  - build
+  - push
+  - deploy
+
+variables:
+  IMAGE_NAME: registry.gitlab.com/ton-groupe/ton-projet
+  CONTAINER_NAME: springboot_app
+  DOCKER_DRIVER: overlay2
+
+before_script:
+  - export DOCKER_BUILDKIT=1
+  - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+
+test:
+  stage: test
+  image: maven:3.8.5-openjdk-17
+  script:
+    - mvn test
+
+build:
+  stage: build
+  image: maven:3.8.5-openjdk-17
+  script:
+    - mvn clean package -DskipTests
+    - docker build -t $IMAGE_NAME:$CI_COMMIT_REF_NAME .
+    - docker tag $IMAGE_NAME:$CI_COMMIT_REF_NAME $IMAGE_NAME:latest
+
+push:
+  stage: push
+  script:
+    - docker push $IMAGE_NAME:$CI_COMMIT_REF_NAME
+    - docker push $IMAGE_NAME:latest
+
+deploy:
+  stage: deploy
+  only:
+    - main
+  script:
+    - docker pull $IMAGE_NAME:latest
+    - docker stop $CONTAINER_NAME || true
+    - docker rm $CONTAINER_NAME || true
+    - docker run -d --name $CONTAINER_NAME -p 8080:8080 $IMAGE_NAME:latest

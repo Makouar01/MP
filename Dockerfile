@@ -5,7 +5,7 @@ FROM openjdk:17-jdk-slim
 WORKDIR /app
 
 # Copier le fichier JAR dans le conteneur
-COPY target/MP-0.0.1-SNAPSHOT.jar app.jar
+COPY target/*.jar app.jar
 
 # Exposer le port utilisé par Spring Boot
 EXPOSE 8080
